@@ -2,104 +2,108 @@
 
 **English** | [繁體中文](README.zh-TW.md)
 
-Companion features for a Hermes chat bot that plays 大肥魚 (Dafeiyu, a tsundere, food-loving AI fish)
-on Discord: reaction stickers, a Chinese internet-meme wiki, joke seeds and a persona reminder.
+Companion features for a Hermes chat bot that plays 大肥魚 (Dafeiyu, a tsundere, food-loving AI
+fish) on Discord.
 
-The sticker part is the main one. The chat model does not choose stickers. Before each reply is
-sent, a small model (deepseek-flash) reads the reply, decides whether 大肥魚 would react to it,
-and picks one image from about 470 captioned stickers.
+| Feature | What it does | Switch |
+|---|---|---|
+| [Reaction stickers](#reaction-stickers) | Before each reply is sent, deepseek-flash decides whether 大肥魚 would react and picks one of 469 captioned stickers. | `memes` |
+| [Meme wiki](#meme-wiki) | Adds the wiki entry to the turn when the user asks about a meme. The chat model can also look words up with the `search_meme_wiki` tool. | `memewiki` |
+| [Joke seeds](#joke-seeds) | Offers the chat model 2–3 jokes per turn. | `jokes` |
+| [Persona reminder](#persona-reminder) | Adds one line per turn that keeps the persona's tone. | always on |
 
-## What it does
+Users can turn each feature on or off in chat ("關掉表情包"); the chat model then calls the
+`companion_switch` tool. All features act only on the platforms listed in the
+[configuration](#configuration) (Discord by default).
 
-| Hermes surface | Behaviour |
-|---|---|
-| `pre_llm_call` hook | If the user asks about a meme and the wiki has it, appends that one wiki entry to the turn. Otherwise appends 2–3 joke seeds. Always appends a one-line persona reminder. |
-| `transform_llm_output` hook | Steps 1–4 of the [sticker pipeline](#sticker-pipeline): clean the reply, decide, pick, attach the sticker. |
-| `llm_request` middleware | Step 5: shows earlier stickers to the chat model as `[貼圖：<caption>]`. |
-| Tool `search_meme_wiki` | Looks up a meme, slang word or abbreviation in the offline wiki (6,696 entries, simplified Chinese). |
-| Tool `companion_switch` | Turns each feature on or off from the chat ("關掉表情包"). |
-
-All hooks act only on the platforms listed in the config (Discord by default).
-
-## Sticker pipeline
+## Reaction stickers
 
 ![This turn: the chat model writes the reply; the plugin cleans it, decides, picks a sticker and appends a MEDIA line. Next turn: the chat model sees that line as the sticker's caption.](docs/sticker-flow.svg)
 
-1. **Clean.** Only the sticker picked below should be sent, but the chat model sees earlier stickers
-   as `[貼圖：<caption>]` notes (step 5) and may write one itself. Any such note, `[[meme:…]]`
-   marker or sticker `MEDIA:` line in the reply is removed, so it never shows up as text or as a
-   second image.
+1. **Clean.** Sticker notes, `[[meme:…]]` markers and sticker `MEDIA:` lines that the chat model
+   wrote itself are removed from the reply.
 2. **Decide.** deepseek-flash reads this turn's user message and the reply. It answers `不貼`
-   (no sticker), or two lines: the reply's most emotional sentence, quoted as written, and the
-   single reaction it shows in 15 characters or fewer, for example `被打臉、自嘲吃癟` (proven wrong, laughing at itself).
+   (no sticker), or quotes the reply's most emotional sentence and names the reaction it shows
+   in 15 characters or fewer, for example `被打臉、自嘲吃癟` (proven wrong, laughing at itself).
 3. **Pick.** deepseek-flash picks one image for that sentence and reaction. The last 10 stickers
-   sent, across all sessions, are left out. There are two modes:
-   - **Full list** (default): every caption is in the system prompt in a fixed order, so the
-     prompt cache covers almost all of it. The recent stickers are named in the user message.
-     If the model picks a recent one anyway, or the call fails, a random unused image is sent.
-   - **Embedding**: set `meme_embed_url`. The reaction is embedded and only the 8 captions whose
-     "適合：" (when to use) part is closest are offered. If the call fails, the closest one is sent.
-4. **Send.** Append `MEDIA:<absolute path>` to the reply. Hermes's Discord adapter uploads the
-   file; GIFs play inline. The transcript keeps the `MEDIA:` line.
-5. **Next turn.** The `llm_request` middleware shows each stored sticker line to the chat model as
-   `[貼圖：<full caption>]`, for example `[貼圖：張嘴輕咬一口，表情俏皮；適合：開玩笑假裝要咬人時]`.
-   The model knows which sticker it sent and can refer to it, but sees neither the image nor the
-   path.
+   sent, across all sessions, are excluded.
+   - **Full list** (default): all captions are in the system prompt, so the prompt cache covers
+     almost all of it. If the model picks a recent sticker anyway, or the call fails, a random
+     unused image is sent.
+   - **Embedding** (set `meme_embed_url`): only the 8 captions closest to the reaction are
+     offered. If the call fails, the closest one is sent.
+4. **Send.** `MEDIA:<absolute path>` is appended to the reply, and Hermes's Discord adapter
+   uploads the file. GIFs play inline.
+5. **Next turn.** The chat model sees each earlier sticker as its caption, for example
+   `[貼圖：張嘴輕咬一口，表情俏皮；適合：開玩笑假裝要咬人時]`, so it can refer to the sticker
+   it sent.
 
-If the decision or the embedding lookup fails or times out, the reply goes out without a sticker
-and the error is logged. All timeouts together stay inside Hermes's 30 s plugin hook limit.
+If the decision or the pick fails or times out, the reply is sent without a sticker and the error
+is logged.
 
-## Accuracy and cost
+### Accuracy and cost
 
-Measured offline on real 大肥魚 Discord replies, with deepseek-flash prices (USD per million
-tokens: 0.15 input, 0.003 input served from cache, 0.6 output).
+Measured offline on real 大肥魚 Discord replies.
 
-**Accuracy.** 60 replies that had a sticker live. For each reply, the caption chosen by each
-mode was shown to Claude Sonnet among other candidates, in random order and without saying where
-it came from, and scored 1–5 for fit. The judge read the caption text, not the image.
+**Which sticker.** For 60 replies that had a sticker, Claude Sonnet scored each mode's pick 1–5
+for fit, blind to the mode. It read the captions, not the images.
 
 | Mode | Mean score | Scored ≥4 | Scored ≤2 |
 |---|---|---|---|
 | Full list | 2.95 | 19/60 | 21/60 |
 | Embedding, top 8 | 2.73 | 13/60 | 26/60 |
 
-**When to post.** 109 Discord replies, labelled by Sonnet as should post (14), either way (31)
-or should not post (64). In each of two runs, the decision posted on 12 of the 14 "should" and
-on 10 of the 64 "should not".
+**Whether to post.** Of 109 replies, Sonnet labelled 14 as should post and 64 as should not. In
+each of two runs, the decision posted on 12 of the 14 and on 10 of the 64.
 
-**Cost, prompt cache included.** The decision runs on every reply; the pick runs only when a
-sticker is sent.
+**Cost** at deepseek-flash prices (USD per million tokens: 0.15 input, 0.003 cached input,
+0.6 output):
 
-| Step | Cost (USD) | Share of prompt tokens served from cache | Latency, median / max |
+| Step | Cost (USD) | Prompt tokens from cache | Latency, median / max |
 |---|---|---|---|
-| Decide, per reply | 0.000186 | 54% | 1.8 / 9.6 s |
+| Decide, every reply | 0.000186 | 54% | 1.8 / 9.6 s |
 | Pick, full list, per sticker | 0.000285 | 97% | 2.4 / 8.8 s |
-| Pick, full list, per sticker, if the API had no cache | ≈0.0020 | 0% | — |
+| Pick, full list, per sticker, API without a cache | ≈0.0020 | 0% | — |
 | Pick, embedding top 8, per sticker | 0.000161 | 0% | 1.7 / 4.3 s |
 
-At an assumed 30 stickers per 100 replies, decide + full list costs about USD 0.027 per 100
-replies, and decide + embedding about USD 0.023. The embedding service itself is not counted.
-The full-list system prompt is about 12,000 tokens. After the cache expires (some hours
-without use), the next pick pays about USD 0.0018 to write it again.
+At 30 stickers per 100 replies, that is about USD 0.027 per 100 replies with the full list and
+USD 0.023 with embedding (the embedding service not counted).
 
-**Recommendation.**
+Use the full list when the API has a prefix cache, as DeepSeek does. Without a cache, or with a
+much larger sticker library, use the embedding mode.
 
-- API with a prefix cache (DeepSeek and others): use the full list. It is the most accurate.
-- API without a cache: the full list costs about 7 times more per sticker. If you run an
-  embedding service, use the embedding mode.
-- Much larger sticker library: the full-list prompt grows with the library; the embedding mode
-  does not.
+## Meme wiki
+
+An offline Chinese internet-meme wiki: 6,696 entries in simplified Chinese. Messages in
+Traditional Chinese are converted character by character before matching.
+
+- **Automatic.** The entry is added to the turn when the message asks what a meme is
+  (「去碼頭整點薯條是什麼梗」), or when the whole message is one word of 2–10 characters that the
+  wiki finds. The added text is a short rule (play along with the meme; explain it only when
+  asked) and the entry's usage and meaning: 270–1,040 characters, median 560. Short everyday
+  words can match an unrelated entry, for example `hi` matches `hide`.
+- **Tool.** The chat model can look up any word with `search_meme_wiki`.
+
+## Joke seeds
+
+On a turn without a wiki entry, 2–3 of 24 jokes are picked at random, each with a note on when it
+fits, for example `急了（對方被戳到跳腳、開始連珠炮時）`. The chat model is told to use at most
+one, not to explain it, and not to joke when the user is sad. This adds 110–160 characters.
+
+## Persona reminder
+
+Every turn ends with 「【語氣】照大肥魚人設說話：傲嬌、口癖、偶爾犯蠢，內容照常準確。」
+In long sessions with many tool calls, this keeps the tone set by the persona file.
 
 ## Requirements
 
-- Hermes Agent with the plugin hooks above (developed against v0.22.5).
-- A DeepSeek API key with access to `deepseek-flash` as `DEEPSEEK_API_KEY`, read through Hermes
-  (the profile's `.env` or the environment). The model and endpoint are fixed in `meme_marker.py`.
-- Optional, for the embedding mode: a [Text Embeddings Inference](https://github.com/huggingface/text-embeddings-inference)
+- Hermes Agent v0.22.5 or later. Tested on v0.22.5 and v0.23.1.
+- For stickers: a DeepSeek API key with access to `deepseek-flash`, as `DEEPSEEK_API_KEY`.
+- Optional, for the embedding pick: a [Text Embeddings Inference](https://github.com/huggingface/text-embeddings-inference)
   `/embed` endpoint. Developed with Qwen3-Embedding-8B.
-- Python standard library only; no extra packages.
-- For `fetch_sources.sh`: bash, curl, unzip, sha256sum, and Node.js (used once to extract the
-  joke seeds).
+- For `fetch_sources.sh`: bash, curl, unzip, sha256sum and Node.js.
+
+The plugin uses the Python standard library only.
 
 ## Setup
 
@@ -111,14 +115,12 @@ without use), the next pick pays about USD 0.0018 to write it again.
    hermes plugins enable dafeiyu-companion
    ```
 
-   Without the CLI: clone this repository to `<HERMES_HOME>/plugins/dafeiyu-companion/` and add
-   `dafeiyu-companion` to `plugins.enabled` in `config.yaml`.
 2. Add the `dafeiyu_companion` toolset to the platforms that should have the two tools
    (`platform_toolsets` in `config.yaml`).
 3. Tell the chat model, in its persona or context file, that stickers are added automatically and
-   its replies should be text only. This plugin does not add that instruction itself.
-4. Download the images, the meme wiki and the other sources (about 320 MB) into
-   `<HERMES_HOME>/companion-data/`. The script uses pinned versions and checks their SHA-256:
+   its replies should be text only.
+4. Download the stickers, the meme wiki and the joke seeds (about 320 MB) into
+   `<HERMES_HOME>/companion-data/`. The script uses pinned versions and checks SHA-256.
 
    ```bash
    bash <HERMES_HOME>/plugins/dafeiyu-companion/fetch_sources.sh all
@@ -128,74 +130,63 @@ without use), the next pick pays about USD 0.0018 to write it again.
 
 ## Configuration
 
-`<HERMES_HOME>/config/companion.json`. It is read on every turn, so changes apply on the next
-turn without a restart. A missing file means the defaults.
-A file that cannot be read or has a wrong type turns every feature off and logs an error.
-
-| Key | Default | Meaning |
-|---|---|---|
-| `memes` | `true` | Stickers |
-| `memewiki` | `true` | Meme wiki injection and the `search_meme_wiki` tool |
-| `jokes` | `true` | Joke seeds |
-| `jokes_wanjiqi` | `false` | Add the cruder wanjiqi joke source to the seeds |
-| `platforms` | `["discord"]` | Platforms the hooks act on |
-| `meme_embed_url` | `""` | Empty: full-list pick. A TEI `/embed` URL: embedding pick. Without a restart, the first sticker afterwards also builds the caption index (about 10 s); after a restart it is built at startup. |
+`<HERMES_HOME>/config/companion.json`, read on every turn: changes apply on the next turn. A
+missing file means the defaults. If the file cannot be read or has a wrong type, every feature is
+off and an error is logged.
 
 ```json
 {
   "memes": true,
   "memewiki": true,
   "jokes": true,
-  "jokes_wanjiqi": false,
   "platforms": ["discord"],
   "meme_embed_url": ""
 }
 ```
 
-### Data files
+| Key | Meaning |
+|---|---|
+| `memes`, `memewiki`, `jokes` | Feature switches. `memewiki` covers the tool too. |
+| `platforms` | Platforms the features act on. |
+| `meme_embed_url` | Empty: full-list pick. A TEI `/embed` URL: embedding pick. Set without a restart, the first sticker afterwards takes about 10 s longer to build the caption index. |
 
-- `caption-overrides.json`, in this plugin directory: the caption and category of every image
-  (`"<pack>/<path>": {"tag", "caption"}`). It always replaces the caption and category in the
-  upstream `index.db`, which stays as downloaded. Tag `skip` removes an image. The captions were
-  rewritten by Claude Haiku in the form `<what the picture shows>；適合：<when to send it>`.
-
-In `<HERMES_HOME>/companion-data/`, written by `fetch_sources.sh` and the plugin:
-
-- `meme-packs/`: 5 sticker packs, 469 images, each with the upstream `index.db` and `manifest.json`.
-- `recent-stickers.json`: the last 10 stickers sent. Written by the plugin.
-- `memewiki/memes.db`, `jokes/`, `opencc/`: meme wiki, joke seeds, and a character table used to
-  match Traditional Chinese text against the simplified-Chinese wiki.
+To change a sticker's caption or leave a sticker out, edit `caption-overrides.json` in the plugin
+directory (`"<pack>/<path>": {"tag", "caption"}`; tag `skip` leaves the image out).
 
 ## Network, files and privacy
 
-- **DeepSeek API** (`https://api.deepseek.com`): on every reply on an enabled platform, this
-  turn's user message (up to 500 characters) and the reply (up to 2,000) are sent for the
-  decision. When a sticker is sent, the quoted sentence, the reaction and the captions are sent
-  for the pick. Nothing is sent when `memes` is off.
-- **Embedding endpoint**: only when `meme_embed_url` is set: the reaction text and, once per
+- **DeepSeek API** (`https://api.deepseek.com`), only when `memes` is on: every reply on an
+  enabled platform sends this turn's user message (up to 500 characters) and the reply (up to
+  2,000). When a sticker is sent, the quoted sentence, the reaction and the captions are sent too.
+- **Embedding endpoint**, only when `meme_embed_url` is set: the reaction text and, once per
   startup, all captions.
-- **Reads**: `DEEPSEEK_API_KEY` through Hermes's secret scope, and `<HERMES_HOME>/companion-data/`.
-- **Writes**: `<HERMES_HOME>/config/companion.json` (via `companion_switch`) and
-  `<HERMES_HOME>/companion-data/recent-stickers.json`.
-- No shell commands. One short-lived background thread builds the caption index in the
-  embedding mode.
+- **Reads** `DEEPSEEK_API_KEY` through Hermes's secret scope, and `<HERMES_HOME>/companion-data/`.
+- **Writes** `<HERMES_HOME>/config/companion.json` (via `companion_switch`) and
+  `<HERMES_HOME>/companion-data/recent-stickers.json` (the last 10 stickers).
+- No shell commands. The embedding mode starts one short-lived background thread to build the
+  caption index.
 
-## Licenses
+## Sources and licenses
 
-The plugin code is MIT ([LICENSE](LICENSE)).
+| Feature | Source | Used as is | Changed here |
+|---|---|---|---|
+| Stickers | [yyh-001/dsh-meme-packs](https://github.com/yyh-001/dsh-meme-packs), 5 packs | Images | Captions rewritten by Claude Haiku (`caption-overrides.json`). Deciding and picking are this plugin's own. |
+| Meme wiki | [thawline/dsh-memewiki](https://github.com/thawline/dsh-memewiki) | Entries, lookup and trigger rules, entry format, rule text | Ported to Python; Traditional Chinese matching added. |
+| Traditional → Simplified table | [BYVoid/OpenCC](https://github.com/BYVoid/OpenCC) | Character table, for matching only | — |
+| Joke seeds | [Hanson0901/dsh-line-bot](https://github.com/Hanson0901/dsh-line-bot) `lib/jokes.mjs` | 24 jokes and their notes | Instruction rewritten. Of upstream's limits, only "not when the user is sad" is kept; upstream also rules out serious talk and first chats, tells the model to skip jokes that don't fit, and bans belittling, regional, gender, illness and political jokes. |
+| Persona reminder | This plugin | — | — |
 
-The sticker packs are fan works for personal, non-commercial use and may not be
-redistributed (some are CC BY-NC-SA 4.0). The images are therefore downloaded, not committed.
-The meme wiki code is MIT and its entries belong to their authors and cnmeme.wiki. Sources,
-pinned versions and the license of each: [docs/data-sources.md](docs/data-sources.md).
+The plugin code is MIT ([LICENSE](LICENSE)). The sticker packs are fan works for personal,
+non-commercial use and may not be redistributed (some are CC BY-NC-SA 4.0), so they are
+downloaded, not committed. The meme wiki code is MIT; its entries belong to their authors and
+cnmeme.wiki. dsh-line-bot is MIT and OpenCC is Apache-2.0. Pinned versions and checksums:
+[docs/data-sources.md](docs/data-sources.md).
 
 ## Tests
+
+Run after `fetch_sources.sh`; DeepSeek and the embedding service are faked.
 
 ```bash
 cd <HERMES_HOME>/plugins/dafeiyu-companion
 python3 -I -m unittest discover -s tests -q
 ```
-
-Run them after `fetch_sources.sh`: they read the meme wiki, the joke seeds and the matching table
-from `<HERMES_HOME>/companion-data/`. DeepSeek and the embedding service are replaced with fakes,
-so the tests need no network.

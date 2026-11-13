@@ -38,7 +38,7 @@ def build_context(user_message, conversation_history, platform: str, cfg: dict |
         parts.append(wiki)
     # A turn that asks about a meme gets the wiki entry only; the joke hints would just distract.
     if cfg["jokes"] and not wiki:
-        parts.append(jokes.context_text(include_wanjiqi=cfg["jokes_wanjiqi"]))
+        parts.append(jokes.context_text())
     # Long tool-heavy sessions bury SOUL.md under tool output; this line sits next to the reply.
     # Persona only: a per-turn sticker hint made every reply carry a sticker.
     parts.append(TONE_HINT)
@@ -126,7 +126,7 @@ COMPANION_SWITCH_SCHEMA = {
         "Toggle memes, meme wiki and jokes on or off. "
         "(switch, enable, disable, turn on, turn off the companion features.) "
         "開關陪聊功能。使用者說「關掉／開啟 表情包／梗百科／玩梗」時呼叫本工具（這是功能開關，不要改用 memory 記下來）。"
-        "feature：memes（表情包）、memewiki（梗百科）、jokes（玩梗）、jokes_wanjiqi（玩梗裡較重口味的 wanjiqi 彈幕梗來源）。"
+        "feature：memes（表情包）、memewiki（梗百科）、jokes（玩梗）。"
         "enabled：true 開、false 關。兩個參數都省略則只回報目前狀態。"
     ),
     "parameters": {

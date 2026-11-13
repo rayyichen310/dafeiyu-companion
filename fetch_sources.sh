@@ -16,8 +16,6 @@ PACKS_REPO=yyh-001/dsh-meme-packs
 MEMEWIKI_REPO=thawline/dsh-memewiki
 MEMEWIKI_SHA=e377a9b87d2bcb6fee8f22e31afc2bf72ee3f5a4
 MEMEWIKI_DB_SHA256=5d1d1857985b1d5602b886ed8ec79759a97b41451c1a855c354d7b2d9b820c4a
-WANJIQI_REPO=Chu-Xin-r/wanjiqi-meme
-WANJIQI_SHA=de4eac5ba5275ba08012fa71619298b19e9dcae6
 LINEBOT_REPO=Hanson0901/dsh-line-bot
 LINEBOT_SHA=87d5bea0d76546f132cf95cadf52e8f74c28e23a
 OPENCC_REPO=BYVoid/OpenCC
@@ -54,8 +52,6 @@ fetch_memewiki() {
 
 fetch_jokes() {
   mkdir -p jokes
-  raw $WANJIQI_REPO $WANJIQI_SHA skills/wanjiqi-meme/assets/memes_top100.json > jokes/wanjiqi-memes_top100.json
-  raw $WANJIQI_REPO $WANJIQI_SHA LICENSE > jokes/LICENSE-wanjiqi-meme
   raw $LINEBOT_REPO $LINEBOT_SHA LICENSE > jokes/LICENSE-dsh-line-bot
   # DEFAULTS array of lib/jokes.mjs, evaluated verbatim (no rewording).
   raw $LINEBOT_REPO $LINEBOT_SHA lib/jokes.mjs | node -e '

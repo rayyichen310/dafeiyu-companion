@@ -14,8 +14,8 @@ from pathlib import Path
 
 log = logging.getLogger(__name__)
 
-SWITCHES = ("memes", "memewiki", "jokes", "jokes_wanjiqi")
-DEFAULTS = {"memes": True, "memewiki": True, "jokes": True, "jokes_wanjiqi": False}
+SWITCHES = ("memes", "memewiki", "jokes")
+DEFAULTS = {"memes": True, "memewiki": True, "jokes": True}
 # The hooks only act on these platforms (cron, CLI, API turns get nothing).
 DEFAULT_PLATFORMS = ["discord"]
 # Sticker pick: "" lists every caption to deepseek-flash; an embedding endpoint URL (TEI /embed)

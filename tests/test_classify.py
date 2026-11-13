@@ -1,6 +1,5 @@
 """Switches and the switch-aware context builder."""
 import json
-import random
 import sys
 import tempfile
 import unittest
@@ -36,7 +35,7 @@ class Switches(unittest.TestCase):
     def test_defaults_without_file(self):
         cfg = settings.load()
         self.assertEqual({k: cfg[k] for k in settings.SWITCHES},
-                         {"memes": True, "memewiki": True, "jokes": True, "jokes_wanjiqi": False})
+                         {"memes": True, "memewiki": True, "jokes": True})
         self.assertEqual(cfg["platforms"], ["discord"])
         self.assertEqual(cfg["meme_embed_url"], "")
 
@@ -48,10 +47,8 @@ class Switches(unittest.TestCase):
 
     def test_set_switch_round_trip_and_persists_other_keys(self):
         settings.set_switch("jokes", False)
-        settings.set_switch("jokes_wanjiqi", True)
         raw = json.loads(settings.settings_path().read_text(encoding="utf-8"))
         self.assertFalse(raw["jokes"])
-        self.assertTrue(raw["jokes_wanjiqi"])
         self.assertTrue(raw["memes"])
         self.assertEqual(raw["platforms"], ["discord"])
 
@@ -74,7 +71,7 @@ class Switches(unittest.TestCase):
 
 
 class ContextBuilder(unittest.TestCase):
-    ALL = {"memes": True, "memewiki": True, "jokes": True, "jokes_wanjiqi": False, "platforms": ["discord"]}
+    ALL = {"memes": True, "memewiki": True, "jokes": True, "platforms": ["discord"]}
 
     def build(self, text, **over):
         cfg = {**self.ALL, **over}
@@ -110,20 +107,6 @@ class ContextBuilder(unittest.TestCase):
         self.assertEqual(self.build("去碼頭整點薯條是什麼梗", memewiki=False).count("[梗百科]"), 0)
         self.assertIn("【玩梗】", self.build("去碼頭整點薯條是什麼梗", memewiki=False))  # no wiki entry -> jokes
         self.assertNotIn("【玩梗】", self.build("哈哈你好笨", jokes=False, memewiki=False))
-
-    def test_wanjiqi_subswitch(self):
-        seeds = {e["text"] for e in jokes.load_seeds()}
-        rng = random.Random(1)
-        for _ in range(30):
-            picked = jokes.context_text(include_wanjiqi=False, rng=rng)
-            lines = [ln[2:].split("（")[0] for ln in picked.splitlines() if ln.startswith("- ")]
-            self.assertTrue(set(lines) <= seeds)
-        wanjiqi = {e["text"] for e in jokes.load_wanjiqi()}
-        seen = set()
-        for _ in range(60):
-            picked = jokes.context_text(include_wanjiqi=True, rng=rng)
-            seen |= {ln[2:].split("（")[0] for ln in picked.splitlines() if ln.startswith("- ")}
-        self.assertTrue(seen & wanjiqi)
 
     def test_missing_data_injects_nothing_instead_of_failing_the_turn(self):
         with tempfile.TemporaryDirectory() as empty, mock.patch.object(settings, "hermes_home", lambda: Path(empty)):

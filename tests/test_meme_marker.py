@@ -12,7 +12,7 @@ from support import load_plugin  # noqa: E402
 
 plugin = load_plugin()
 mm = plugin.meme_marker
-ON = {"memes": True, "memewiki": True, "jokes": True, "jokes_wanjiqi": False, "platforms": ["discord"],
+ON = {"memes": True, "memewiki": True, "jokes": True, "platforms": ["discord"],
       "meme_embed_url": ""}
 EMBED = {**ON, "meme_embed_url": "http://embed"}
 PACK = "/h/hermes/companion-data/meme-packs/dafeiyu-001-v1.3.0/memes"
