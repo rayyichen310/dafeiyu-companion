@@ -93,8 +93,8 @@ without use), the next pick pays about USD 0.0018 to write it again.
 ## Requirements
 
 - Hermes Agent with the plugin hooks above (developed against v0.22.5).
-- A DeepSeek API key with access to `deepseek-flash`, in the environment or in
-  `<HERMES_HOME>/.env` as `DEEPSEEK_API_KEY`. The model and endpoint are fixed in `meme_marker.py`.
+- A DeepSeek API key with access to `deepseek-flash` as `DEEPSEEK_API_KEY`, read through Hermes
+  (the profile's `.env` or the environment). The model and endpoint are fixed in `meme_marker.py`.
 - Optional, for the embedding mode: a [Text Embeddings Inference](https://github.com/huggingface/text-embeddings-inference)
   `/embed` endpoint. Developed with Qwen3-Embedding-8B.
 - Python standard library only; no extra packages.
@@ -174,14 +174,15 @@ In `<HERMES_HOME>/companion-data/`, written by `fetch_sources.sh` and the plugin
   for the pick. Nothing is sent when `memes` is off.
 - **Embedding endpoint**: only when `meme_embed_url` is set: the reaction text and, once per
   startup, all captions.
-- **Reads**: `<HERMES_HOME>/.env` (only the `DEEPSEEK_API_KEY` line) when the variable is not
-  set, and `<HERMES_HOME>/companion-data/`.
+- **Reads**: `DEEPSEEK_API_KEY` through Hermes's secret scope, and `<HERMES_HOME>/companion-data/`.
 - **Writes**: `<HERMES_HOME>/config/companion.json` (via `companion_switch`) and
   `<HERMES_HOME>/companion-data/recent-stickers.json`.
 - No shell commands. One short-lived background thread builds the caption index in the
   embedding mode.
 
-## Licenses of the bundled data
+## Licenses
+
+The plugin code is MIT ([LICENSE](LICENSE)).
 
 The sticker packs are fan works for personal, non-commercial use and may not be
 redistributed (some are CC BY-NC-SA 4.0). The images are therefore downloaded, not committed.

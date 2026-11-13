@@ -78,8 +78,8 @@ Claude Sonnet，不告訴它來源，依搭配程度評 1～5 分。評審讀的
 ## 需求
 
 - 有上述 plugin hook 的 Hermes Agent（開發時用 v0.22.5）。
-- 能用 `deepseek-flash` 的 DeepSeek API key，放在環境變數或 `<HERMES_HOME>/.env` 的 `DEEPSEEK_API_KEY`。
-  模型和 endpoint 寫死在 `meme_marker.py`。
+- 能用 `deepseek-flash` 的 DeepSeek API key，設為 `DEEPSEEK_API_KEY`，經由 Hermes 讀取（profile 的 `.env`
+  或環境變數）。模型和 endpoint 寫死在 `meme_marker.py`。
 - 選用，向量模式才需要：[Text Embeddings Inference](https://github.com/huggingface/text-embeddings-inference)
   的 `/embed` endpoint。開發時用 Qwen3-Embedding-8B。
 - 只用 Python 標準函式庫，不需另外安裝套件。
@@ -149,13 +149,14 @@ Claude Sonnet，不告訴它來源，依搭配程度評 1～5 分。評審讀的
   （最多 500 字）和回覆（最多 2,000 字）做判斷；要貼圖時再送出那一句、反應和圖片描述做挑圖。
   `memes` 關閉時不送。
 - **Embedding 服務**：只在設定 `meme_embed_url` 時使用：送出反應文字，每次啟動另送一次全部描述。
-- **讀取**：環境變數沒有金鑰時讀 `<HERMES_HOME>/.env`（只取 `DEEPSEEK_API_KEY` 那一行），以及
-  `<HERMES_HOME>/companion-data/`。
+- **讀取**：經由 Hermes 的 secret scope 讀 `DEEPSEEK_API_KEY`，以及 `<HERMES_HOME>/companion-data/`。
 - **寫入**：`<HERMES_HOME>/config/companion.json`（經由 `companion_switch`）和
   `<HERMES_HOME>/companion-data/recent-stickers.json`。
 - 不執行 shell 指令。向量模式會開一條短暫的背景執行緒建索引。
 
-## 資料授權
+## 授權
+
+plugin 程式碼是 MIT（[LICENSE](LICENSE)）。
 
 貼圖是同人作品，只供個人非商業使用，不可再散布（部分為 CC BY-NC-SA 4.0），所以圖片用下載的、不進 git。
 梗百科程式是 MIT，詞條版權屬原作者與 cnmeme.wiki。各來源、釘選版本與授權見

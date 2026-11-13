@@ -37,7 +37,6 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 import random
 import re
 import threading
@@ -125,14 +124,12 @@ def _remember_sent(file: str) -> None:
 
 
 def _api_key() -> str:
-    key = os.environ.get("DEEPSEEK_API_KEY", "")
-    if key:
-        return key
-    env = settings.hermes_home() / ".env"
-    for line in env.read_text(encoding="utf-8").splitlines():
-        if line.startswith("DEEPSEEK_API_KEY="):
-            return line.split("=", 1)[1].strip().strip('"').strip("'")
-    raise RuntimeError(f"DEEPSEEK_API_KEY not set and not in {env}")
+    # Hermes' credential route: honours the active profile's .env under multiplexing.
+    from agent.secret_scope import get_secret
+    key = get_secret("DEEPSEEK_API_KEY")
+    if not key:
+        raise RuntimeError("DEEPSEEK_API_KEY is not set for this Hermes profile")
+    return key
 
 
 def _ask_flash(system: str, user: str, timeout: float) -> str:
