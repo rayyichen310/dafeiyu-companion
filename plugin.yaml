@@ -1,0 +1,16 @@
+name: dafeiyu-companion
+version: 1.0.0
+description: "Companion features for a 大肥魚 (Dafeiyu) persona bot: reaction stickers chosen by deepseek-flash before each reply is sent, an offline Chinese meme wiki (search_meme_wiki), joke seeds, a persona reminder, and per-feature switches (companion_switch)."
+author: rayyichen310
+provides_tools:
+  - companion_switch
+  - search_meme_wiki
+provides_hooks:
+  - pre_llm_call
+  - transform_llm_output
+provides_middleware:
+  - llm_request
+requires_env:
+  - name: DEEPSEEK_API_KEY
+    description: "DeepSeek API key with access to deepseek-flash (sticker decision and pick)"
+    url: https://platform.deepseek.com/api_keys
