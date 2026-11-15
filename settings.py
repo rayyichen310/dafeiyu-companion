@@ -28,11 +28,10 @@ class SettingsError(RuntimeError):
 
 
 def hermes_home() -> Path:
-    env = os.environ.get("HERMES_HOME")
-    if env:
-        return Path(env)
-    # <home>/plugins/dafeiyu-companion/settings.py
-    return Path(__file__).resolve().parents[2]
+    # Hermes' own resolution, so a profile's home is used; imported here so the tests run
+    # without Hermes installed.
+    from hermes_constants import get_hermes_home
+    return get_hermes_home()
 
 
 def data_dir() -> Path:
