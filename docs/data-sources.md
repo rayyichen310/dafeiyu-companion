@@ -4,7 +4,9 @@
 
 The images, the meme wiki and the joke seeds the plugin reads are not in this repository.
 `fetch_sources.sh` downloads them at the pinned versions below into `<HERMES_HOME>/companion-data/`
-and checks their SHA-256. Packs already present and a verified `memes.db` are skipped.
+Every downloaded file, LICENSE and NOTICE files included, is checked against the SHA-256 in the
+table below or in the script before it is unpacked, run or moved into place; a mismatch aborts
+the script. Packs already present and a verified `memes.db` are skipped.
 
 ```bash
 bash <HERMES_HOME>/plugins/dafeiyu-companion/fetch_sources.sh [packs|memewiki|jokes|opencc|all]   # default: all
@@ -20,8 +22,8 @@ bash <HERMES_HOME>/plugins/dafeiyu-companion/fetch_sources.sh [packs|memewiki|jo
 | Stickers | same, release `dafeiyu-2-emotes-v1.0.0` (239 GIF, 300×300) | `fec3d7c61106f5db4a9b5e42561169834a627404326d5fd8b3c7ec34165ab07f`, 170,699,011 B | noncommercial-fan (EmoteLab EULA; character 上善无形, ZipZipPipe; model 0x4682B4) | `meme-packs/dafeiyu-2-emotes-v1.0.0/` |
 | Stickers | same, release `dafeiyu-blue-emotes-v1.0.1` (157 GIF, 400×400) | `1d36fc417720ea54c60df1259bc300d5785322bfccf9302bd88a3946e0dde3f2`, 135,559,054 B | noncommercial-fan (as above; transcoded by yyh-001) | `meme-packs/dafeiyu-blue-emotes-v1.0.1/` |
 | Meme wiki | [thawline/dsh-memewiki](https://github.com/thawline/dsh-memewiki) `e377a9b87d2bcb6fee8f22e31afc2bf72ee3f5a4`, `data/memes.db` (6,696 entries) | SHA-256 `5d1d1857985b1d5602b886ed8ec79759a97b41451c1a855c354d7b2d9b820c4a`, 16,834,560 B | code MIT; entries belong to their authors and cnmeme.wiki (see `memewiki/NOTICE`) | `memewiki/` |
-| Joke seeds | [Hanson0901/dsh-line-bot](https://github.com/Hanson0901/dsh-line-bot) `87d5bea0d76546f132cf95cadf52e8f74c28e23a`, the `DEFAULTS` array of `lib/jokes.mjs` (24 seeds); the injected wording also comes from `contextText` in that file | — | MIT | `jokes/dsh-line-bot-jokes-defaults.json`, `jokes/LICENSE-dsh-line-bot` |
-| Traditional → Simplified matching table | [BYVoid/OpenCC](https://github.com/BYVoid/OpenCC) `fae2a0a911c30764e669a7d8b0591cd8e852934a`, `data/dictionary/TSCharacters.txt` (character level; used for matching only, never to convert output) | — | Apache-2.0 | `opencc/` |
+| Joke seeds | [Hanson0901/dsh-line-bot](https://github.com/Hanson0901/dsh-line-bot) `87d5bea0d76546f132cf95cadf52e8f74c28e23a`, the `DEFAULTS` array of `lib/jokes.mjs` (24 seeds); the injected wording also comes from `contextText` in that file | `lib/jokes.mjs` SHA-256 `ca2d3b31435e74199fff2d93321d9492a9855dfc7a91310af7edfe1bbddde0cd`, checked before Node extracts the array | MIT | `jokes/dsh-line-bot-jokes-defaults.json`, `jokes/LICENSE-dsh-line-bot` |
+| Traditional → Simplified matching table | [BYVoid/OpenCC](https://github.com/BYVoid/OpenCC) `fae2a0a911c30764e669a7d8b0591cd8e852934a`, `data/dictionary/TSCharacters.txt` (character level; used for matching only, never to convert output) | SHA-256 `9ff46a7d30e5765375eb13d33f2b03a34d298913caf2b120380679f33ae1642d` | Apache-2.0 | `opencc/` |
 
 The image count in each pack's `index.db` matches the files in its `memes/`: 24, 31, 18, 239 and
 157. Each pack's `manifest.json` (license, credits, source) and `index.db` (category tag, caption
