@@ -10,10 +10,13 @@ inline).
 from __future__ import annotations
 
 import json
+import logging
 import sqlite3
 from pathlib import Path
 
 from . import settings
+
+log = logging.getLogger(__name__)
 
 
 def _packs_dir() -> Path:
@@ -29,9 +32,15 @@ def load_catalog() -> list[dict]:
     rows = []
     for pack in sorted(p for p in _packs_dir().iterdir() if (p / "index.db").exists()):
         name = json.loads((pack / "manifest.json").read_text(encoding="utf-8")).get("name", pack.name)
+        root = pack.resolve()
         conn = sqlite3.connect(f"file:{pack / 'index.db'}?mode=ro", uri=True)
         try:
             for path, tag, caption, keywords in conn.execute("SELECT path, tag, caption, keywords FROM memes"):
+                # The file goes out as a MEDIA: upload, so it must stay inside its pack.
+                if not (pack / path).resolve().is_relative_to(root):
+                    log.warning("dafeiyu-companion: %s/index.db path %r leaves the pack directory; skipped",
+                                pack.name, path)
+                    continue
                 over = overrides.get(f"{pack.name}/{path}", {})
                 tag, caption = over.get("tag", tag), over.get("caption", caption)
                 if tag == "skip":
